@@ -2,7 +2,7 @@ GET http://localhost:5187/games
 
 # you need the 3 ### signs to show that this is a new request
 ###
-GET http://localhost:5187/games/4
+GET http://localhost:5187/games/5
 
 
 # Before you send the json, u gotta specifiy the type which is what we do
@@ -29,3 +29,6 @@ Content-Type: application/json
     "price": 9.99,
     "releaseDate": "1992-07-15"
 }
+
+###
+DELETE http://localhost:5187/games/1
