@@ -1,12 +1,16 @@
 namespace Gamestore.Api.Endpoints;
 
+
+using GameStore.Api.Data;
 using GameStore.Api.Dtos;
+using GameStore.Api.Models;
+using Microsoft.EntityFrameworkCore;
 
 public static class GamesEndpoints
 {
     const string GetGameEndpointName = "GetGame";
 
-    private static readonly List<GameDto> games = [
+    private static readonly List<GameSummaryDto> games = [
         new (
             1, 
             "Street Fighter II", 
@@ -39,21 +43,43 @@ public static class GamesEndpoints
 
 
         // GET /games        vvvvvvvvvvvvvvvvvvvvv handler
-        group.MapGet("/", () => games);
+        group.MapGet("/", async (GameStoreContext dbContext) 
+            => await dbContext.Games
+                              .Include(game => game.Genre)
+                              .Select(game => new GameSummaryDto(
+                                game.Id,
+                                game.Name,
+                                game.Genre!.Name,
+                                game.Price,
+                                game.ReleaseDate               
+                            ))
+                            .AsNoTracking()
+                            .ToListAsync());
 
 
 
         // GET /games/1    (v           v    must match)
-        group.MapGet("/{id}", (int id) =>
+        group.MapGet("/{id}", async (int id, GameStoreContext dbContext) =>
         {
-            var game = games.Find(game => game.Id == id);
+            // now that we're using dependency injection, by adding the GameStoreContext dbContext as the 2nd parameter,
+            // we don't do "var game = games.Find(game => game.Id == id);" but rather:
+            
+            var game = await dbContext.Games.FindAsync(id);
 
-            return game is null ? Results.NotFound() : Results.Ok(game);
+            return game is null ? Results.NotFound() : Results.Ok(
+                new GameDetailsDto(
+                    game.Id,
+                    game.Name,
+                    game.GenreId,
+                    game.Price,
+                    game.ReleaseDate
+                )
+            );
         })
             .WithName(GetGameEndpointName); // we can now refer to this route as GetGame
 
         // POST /games
-        group.MapPost("/", (CreateGameDto newGame) =>
+        group.MapPost("/", async (CreateGameDto newGame, GameStoreContext dbContext) =>
         {
 
             // if the new name for example is empty, we don't wanna go ahead with that update
@@ -67,7 +93,10 @@ public static class GamesEndpoints
             }
             */
 
+
             // to insert a new game, just add a new game to the end of the existing games list
+            // now that we're using dependency injection, we remove all of this (originally this is what we had)
+            /*
             GameDto game = new(
                 games.Count + 1, // id
                 newGame.Name, // name from the newGame
@@ -75,12 +104,40 @@ public static class GamesEndpoints
                 newGame.Price, // price from the newGame
                 newGame.ReleaseDate // release date from the newGame
             );
+            */
 
-            games.Add(game);
+            Game game = new()
+            {
+                // we don't create an id or set one because the database creates one as soon as the game created over there
+                Name = newGame.Name,
+                GenreId = newGame.GenreId,
+                Price = newGame.Price,
+                ReleaseDate = newGame.ReleaseDate
+            };
+
+
+            // instead of this "games.Add(game);" we do the following:
+            dbContext.Games.Add(game);
+            // the above doesn't actually send the game into the database
+            // it only asks entity, framework core to start keeping track of the fact that
+            // a new agme needs to be inserted into the database. To actually make the call
+            // to the DB so that the game is saved is:
+            await dbContext.SaveChangesAsync();
+
+            // after the dbContext.SaveChange() above, the id is auto-generated and i guess availble to use
+            GameDetailsDto gameDto = new(
+                game.Id,
+                game.Name,
+                game.GenreId,
+                game.Price,
+                game.ReleaseDate
+            );
 
             //use the route, send the Id, and then the payload
             // this is the 201 JSON code thingy
-            return Results.CreatedAtRoute(GetGameEndpointName, new {id = game.Id}, game);
+            // instead of returning "game" in "Results.CreatedAtRoute(GetGameEndpointName, new {id = game.Id}, game);" we make
+            // a new Dto (GameDetailsDto in our case) and return that instead so that the user cannot see internal details I tihnk
+            return Results.CreatedAtRoute(GetGameEndpointName, new {id = gameDto.Id}, gameDto);
         });
 
         // PUT /games/1
@@ -94,7 +151,7 @@ public static class GamesEndpoints
                 return Results.NotFound();
             }
             
-            games[index] = new GameDto(
+            games[index] = new GameSummaryDto(
                 id,
                 updatedGame.Name,
                 updatedGame.Genre,

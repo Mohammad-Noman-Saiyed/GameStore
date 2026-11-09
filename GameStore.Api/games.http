@@ -2,7 +2,7 @@ GET http://localhost:5187/games
 
 # you need the 3 ### signs to show that this is a new request
 ###
-GET http://localhost:5187/games/5
+GET http://localhost:5187/games/1
 
 
 # Before you send the json, u gotta specifiy the type which is what we do
@@ -13,10 +13,10 @@ POST http://localhost:5187/games
 Content-Type: application/json
 
 {
-    "name": "Super Mario Bros. Wonder",
-    "genre": "Platformer",
-    "price": 59.99,
-    "releaseDate": "2023-10-20"
+    "name": "Street Fighter If",
+    "genreId": 1,
+    "price": 9.99,
+    "releaseDate": "1991-02-01"
 }
 
 ###
