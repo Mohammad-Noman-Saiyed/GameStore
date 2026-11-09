@@ -10,6 +10,7 @@ public static class GamesEndpoints
 {
     const string GetGameEndpointName = "GetGame";
 
+    /* Removing the default list 
     private static readonly List<GameSummaryDto> games = [
         new (
             1, 
@@ -29,6 +30,7 @@ public static class GamesEndpoints
             59.99M,
             new DateOnly(2024, 9, 6))
     ];
+    */
 
     public static void MapGamesEndpoints(this WebApplication app)
     {
@@ -141,32 +143,36 @@ public static class GamesEndpoints
         });
 
         // PUT /games/1
-        group.MapPut("/{id}", (int id, UpdateGameDto updatedGame) =>
+        group.MapPut("/{id}", async (int id, UpdateGameDto updatedGame, GameStoreContext dbContext) =>
         {
-            // find the index of       GAME where GAME's id is equal to the id passed
-            var index = games.FindIndex(game => game.Id == id);
+            // find the index of                               GAME where GAME's id is equal to the id passed
             
-            if(index == -1)
+            // no longer doing this "var index = games.FindIndex(game => game.Id == id);"
+            var existingGame = await dbContext.Games.FindAsync(id);
+
+            if(existingGame is null)
             {
                 return Results.NotFound();
             }
             
-            games[index] = new GameSummaryDto(
-                id,
-                updatedGame.Name,
-                updatedGame.Genre,
-                updatedGame.Price,
-                updatedGame.ReleaseDate
-            );
+            existingGame.Name = updatedGame.Name;
+            existingGame.GenreId = updatedGame.GenreId;
+            existingGame.Price = updatedGame.Price;
+            existingGame.ReleaseDate = updatedGame.ReleaseDate;
+
+            await dbContext.SaveChangesAsync();
 
             // return the 204 JSON code thingy
             return Results.NoContent();
         });
 
         // DELETE /games/1
-        group.MapDelete("/{id}", (int id) =>
+        group.MapDelete("/{id}", async (int id, GameStoreContext dbContext) =>
         {
-            games.RemoveAll(game => game.Id == id);
+            // removing "games.RemoveAll(game => game.Id == id);"
+            // the below is called "bold deletion" which is when it deletes ALL games that mathc the ID
+            await dbContext.Games.Where(game => game.Id == id).ExecuteDeleteAsync();
+
 
             return Results.NoContent();
         });

@@ -2,7 +2,7 @@ GET http://localhost:5187/games
 
 # you need the 3 ### signs to show that this is a new request
 ###
-GET http://localhost:5187/games/1
+GET http://localhost:5187/games/3
 
 
 # Before you send the json, u gotta specifiy the type which is what we do
@@ -13,22 +13,25 @@ POST http://localhost:5187/games
 Content-Type: application/json
 
 {
-    "name": "Street Fighter If",
+    "name": "Test",
     "genreId": 1,
     "price": 9.99,
     "releaseDate": "1991-02-01"
 }
 
 ###
-PUT http://localhost:5187/games/1
+PUT http://localhost:5187/games/2
 Content-Type: application/json
 
 {
     "name": "Street Fighter II Turbo",
-    "genre": "Fighting",
-    "price": 9.99,
-    "releaseDate": "1992-07-15"
+    "genreId": 1,
+    "price": 19.99,
+    "releaseDate": "1991-02-01"
 }
 
 ###
-DELETE http://localhost:5187/games/1
+DELETE http://localhost:5187/games/3
+
+###
+GET http://localhost:5187/genres
